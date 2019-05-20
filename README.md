@@ -1,2 +1,2 @@
 ###### FP-BigData
-Engine, app, server dah jalan. Tinggal nambah producer consumer
+Engine, app, server, producer, consumer dah jalan. Tinggal mecah dataset (di consumer) + bikin 3 model yang berbeda

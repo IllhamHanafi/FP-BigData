@@ -152,11 +152,18 @@ class ClusteringEngine:
         self.spark_session = spark_session
         # Load ratings data for later use
         logger.info("Loading City Data...")
-        dataset_file_path = os.path.join(dataset_folder_path, 'worldcitiespop.csv')
-        self.df = spark_session.read.csv(dataset_file_path, header=True, inferSchema=True).na.drop()
+        dataset_file_path = os.path.join(dataset_folder_path, 'result.txt')
+        self.df = spark_session.read.csv(dataset_file_path, header=None, inferSchema=True).na.drop()
+        self.df = self.df.selectExpr("_c0 as Country", "_c1 as City", "_c2 as AccentCity", "_c3 as Region", "_c4 as Population", "_c5 as Latitude", "_c6 as Longitude")
+        # self.df = spark_session.read.option("header", "false") \
+        #                             .option("delimiter", ",") \
+        #                             .option("inferSchema", "true") \
+        #                             .option("encoding", "UTF-8") \
+        #                             .text(dataset_file_path)
         # self.ratingsdf = self.ratingsdf.drop(self.ratingsdf.columns[1])
         # self.ratingsdf = self.ratingsdf.dropna()
         # self.ratingsdf = self.ratingsdf.toPandas()
+        self.df.show()
         # Load movies data for later use
         # logger.info("Loading Books data...")
         # movies_file_path = os.path.join(dataset_path, 'BX-Books.csv')

@@ -1,19 +1,19 @@
 from kafka import KafkaConsumer
-from pymongo import MongoClient
 from json import loads
+import os
+import pandas as pd
 
 consumer = KafkaConsumer(
-    'numtest',
+    'worldcitiesdata', #topic name
      bootstrap_servers=['localhost:9092'],
      auto_offset_reset='earliest',
      enable_auto_commit=True,
-     group_id='my-group',
      value_deserializer=lambda x: loads(x.decode('utf-8')))
 
-client = MongoClient('localhost:27017')
-collection = client.numtest.numtest
-
+folder_path = os.path.join(os.getcwd(), 'dataset-after-kafka')
+file_path = os.path.join(folder_path, 'result.txt')
+writefile = open(file_path, "w", encoding="utf-8")
 for message in consumer:
     message = message.value
-    collection.insert_one(message)
-    print('{} added to {}'.format(message, collection))
+    writefile.write(message)
+    print(message)
