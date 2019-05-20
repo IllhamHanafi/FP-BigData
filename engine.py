@@ -49,22 +49,29 @@ class ClusteringEngine:
         silhouette = evaluator.evaluate(self.predictions)
         logger.info("Silhouette with squared euclidean distance = " + str(silhouette))
         self.predictions.show(20)
+        self.centers = model.clusterCenters()
+        print(type(self.centers))
+        print(self.centers)
 
-    def add_city(self, country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched):
+    def cluster_city(self, country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched):
         """Add additional city in DB and retrain the model
         """
         new_city = self.spark_session.createDataFrame([(country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched)],
                                                          ["Country", "City", "AccentCity", "Region", "Population", "Latitude", "Longitude"])
         # Add new city to the existi1ng ones
-        new_city = transformDF(new_city)
-        self.df = self.df.union(new_city)
-        # Re-train the model with the new ratings
-        self.__train_model()
-        self.predictions.createOrReplaceTempView("citydata")
-        requested_cluster = self.spark_session.sql('SELECT Country, City, AccentCity, Region, Population, Latitude, Longitude, prediction from citydata where Latitude = "%s" and Longitude = "%s"' % (latitude_fetched, longitude_fetched))
-        requested_cluster= requested_cluster.toPandas()
-        requested_cluster = requested_cluster.to_json()
-        return requested_cluster
+        distance = []
+        for center in self.centers:
+            distance.append((pow((float(center[0]) - float(latitude_fetched)), 2)) + (pow((float(center[1]) - float(longitude_fetched)), 2)))
+        cluster = distance.index(min(distance))
+        # new_city = transformDF(new_city)
+        # self.df = self.df.union(new_city)
+        # # Re-train the model with the new ratings
+        # self.__train_model()
+        # self.predictions.createOrReplaceTempView("citydata")
+        # requested_cluster = self.spark_session.sql('SELECT Country, City, AccentCity, Region, Population, Latitude, Longitude, prediction from citydata where Latitude = "%s" and Longitude = "%s"' % (latitude_fetched, longitude_fetched))
+        # requested_cluster= requested_cluster.toPandas()
+        # requested_cluster = requested_cluster.to_json()
+        return cluster
 
     # def get_map():
     #     self.df

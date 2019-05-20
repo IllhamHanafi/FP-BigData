@@ -11,8 +11,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@main.route("/addCity", methods=["POST"])
-def add_city():
+@main.route("/clusterCity", methods=["POST"])
+def cluster_city():
     """"Untuk menambahkan sebuah kota ke dataset"""
     # get the ratings from the Flask POST request object
     country_fetched = request.form.get('Country')
@@ -23,7 +23,7 @@ def add_city():
     latitude_fetched = float(request.form.get('Latitude'))
     longitude_fetched = float(request.form.get('Longitude'))
     # add them to the model using then engine API
-    cluster_location = clustering_engine.add_city(country_fetched, city_fetched, accentCity_fetched,
+    cluster_location = clustering_engine.cluster_city(country_fetched, city_fetched, accentCity_fetched,
                                                  region_fetched, population_fetched, latitude_fetched, longitude_fetched)
     # ratings = ratings.toJSON()
     return json.dumps(cluster_location)
