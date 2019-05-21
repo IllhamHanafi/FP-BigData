@@ -14,9 +14,9 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly
 
-# setting user, api key and access token
-plotly.tools.set_credentials_file(username='illhamhanafi', api_key='ogNKJZXFl7n9EJHDAzvz')
-mapbox_access_token = 'pk.eyJ1IjoiYnVqYW5ncGVzaW1pcyIsImEiOiJjanRlNmY5N3cxZXM4NDlucm54dm55ejc1In0.nrK84u8ztnUJ8CYkiojZUA'
+# # setting user, api key and access token
+# plotly.tools.set_credentials_file(username='illhamhanafi', api_key='ogNKJZXFl7n9EJHDAzvz')
+# mapbox_access_token = 'pk.eyJ1IjoiYnVqYW5ncGVzaW1pcyIsImEiOiJjanRlNmY5N3cxZXM4NDlucm54dm55ejc1In0.nrK84u8ztnUJ8CYkiojZUA'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 def transformDF(dataframe):
     dataframe = dataframe.withColumn("Latitude", dataframe["Latitude"].cast("double"))
     dataframe = dataframe.withColumn("Longitude", dataframe["Longitude"].cast("double"))
-    # self.df = self.df.withColumn("Region", self.df["Region"].cast("double"))
     assembler = VectorAssembler(
         inputCols=["Latitude", "Longitude"],
         outputCol='features')
@@ -39,136 +38,97 @@ class ClusteringEngine:
     def __train_model(self):
         """Train the model with the current dataset
         """
-        logger.info("Training the cluster model...")
-        kmeans = KMeans().setK(10).setSeed(1)
-        model = kmeans.fit(self.df)
-        self.predictions = model.transform(self.df)
-        logger.info("Model built!")
-        logger.info("Evaluating the cluster model...")
-        evaluator = ClusteringEvaluator()
-        silhouette = evaluator.evaluate(self.predictions)
-        logger.info("Silhouette with squared euclidean distance = " + str(silhouette))
-        self.predictions.show(20)
-        self.centers = model.clusterCenters()
-        print(type(self.centers))
-        print(self.centers)
+        logger.info("Splitting dataset into 3...")
+        # Model 0: 1/3 data pertama.
+        # Model 1: 1/3 data pertama + 1/3 data kedua.
+        # Model 2: semua data
+        self.df0 = self.dforiginal.limit(int(self.dataset_count / 3))
+        self.df1 = self.dforiginal.limit(int(self.dataset_count * 2 / 3))
+        self.df2 = self.dforiginal
+        print('df 0 count = ' + str(self.df0.count()))
+        print('df 1 count = ' + str(self.df1.count()))
+        print('df 2 count = ' + str(self.df2.count()))
+        logger.info("Dataset Splitted !")
 
-    def cluster_city(self, country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched):
+        logger.info("Training model 0...")
+        kmeans_0 = KMeans().setK(10).setSeed(1)
+        model_0 = kmeans_0.fit(self.df0)
+        self.predictions_0 = model_0.transform(self.df0)
+        logger.info("Model 0 built!")
+        logger.info("Evaluating the model 0...")
+        evaluator_0 = ClusteringEvaluator()
+        silhouette_0 = evaluator_0.evaluate(self.predictions_0)
+        logger.info("Silhouette with squared euclidean distance = " + str(silhouette_0))
+        self.centers_0 = model_0.clusterCenters()
+        logger.info("Model 0 Done !")
+
+        logger.info("Training model 1...")
+        kmeans_1 = KMeans().setK(10).setSeed(1)
+        model_1 = kmeans_1.fit(self.df1)
+        self.predictions_1 = model_1.transform(self.df1)
+        logger.info("Model 1 built!")
+        logger.info("Evaluating the model 1...")
+        evaluator_1 = ClusteringEvaluator()
+        silhouette_1 = evaluator_1.evaluate(self.predictions_1)
+        logger.info("Silhouette with squared euclidean distance = " + str(silhouette_1))
+        self.centers_1 = model_1.clusterCenters()
+        logger.info("Model 1 Done !")
+
+        logger.info("Training model 2...")
+        kmeans_2 = KMeans().setK(10).setSeed(1)
+        model_2 = kmeans_2.fit(self.df1)
+        self.predictions_2 = model_2.transform(self.df1)
+        logger.info("Model 2 built!")
+        logger.info("Evaluating the model 2...")
+        evaluator_2 = ClusteringEvaluator()
+        silhouette_2 = evaluator_2.evaluate(self.predictions_2)
+        logger.info("Silhouette with squared euclidean distance = " + str(silhouette_2))
+        self.centers_2 = model_2.clusterCenters()
+        logger.info("Model 2 Done !")
+
+    def cluster_city(self, latitude_fetched, longitude_fetched, model_numb):
         """Add additional city in DB and retrain the model
         """
-        new_city = self.spark_session.createDataFrame([(country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched)],
-                                                         ["Country", "City", "AccentCity", "Region", "Population", "Latitude", "Longitude"])
-        # Add new city to the existi1ng ones
+        # new_city = self.spark_session.createDataFrame([(country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched)],
+        #                                                  ["Country", "City", "AccentCity", "Region", "Population", "Latitude", "Longitude"])
+        # Add new city to the existing ones
         distance = []
-        for center in self.centers:
+        if model_numb == 0:
+            center_varname = self.centers_0
+        elif model_numb == 1:
+            center_varname = self.centers_1
+        elif model_numb == 2:
+            center_varname = self.centers_2
+        for center in center_varname:
             distance.append((pow((float(center[0]) - float(latitude_fetched)), 2)) + (pow((float(center[1]) - float(longitude_fetched)), 2)))
         cluster = distance.index(min(distance))
-        # new_city = transformDF(new_city)
-        # self.df = self.df.union(new_city)
-        # # Re-train the model with the new ratings
-        # self.__train_model()
-        # self.predictions.createOrReplaceTempView("citydata")
-        # requested_cluster = self.spark_session.sql('SELECT Country, City, AccentCity, Region, Population, Latitude, Longitude, prediction from citydata where Latitude = "%s" and Longitude = "%s"' % (latitude_fetched, longitude_fetched))
-        # requested_cluster= requested_cluster.toPandas()
-        # requested_cluster = requested_cluster.to_json()
         return cluster
-
-    # def get_map():
-    #     self.df
-
-    # def get_top_ratings(self, user_id, books_count):
-    #     """Recommends up to book_count top unrated books to user_id
-    #     """
-    #     users = self.ratingsdf.select(self.als.getUserCol())
-    #     users = users.filter(users.userID == user_id)
-    #     userSubsetRecs = self.model.recommendForUserSubset(users, books_count)
-    #     userSubsetRecs = userSubsetRecs.withColumn("recommendations", explode("recommendations"))
-    #     userSubsetRecs = userSubsetRecs.select(func.col('User-ID'),
-    #                                            func.col('recommendations')['ISBN'].alias('ISBN'),
-    #                                            func.col('recommendations')['Rating'].alias('Rating')).\
-    #                                                                                 drop('recommendations')
-    #     userSubsetRecs = userSubsetRecs.drop('Rating')
-    #     # userSubsetRecs = userSubsetRecs.join(self.moviesdf, ("movieId"), 'inner')
-    #     # userSubsetRecs.show()
-    #     # userSubsetRecs.printSchema()
-    #     userSubsetRecs = userSubsetRecs.toPandas()
-    #     userSubsetRecs = userSubsetRecs.to_json()
-    #     return userSubsetRecs
-
-    # def get_top_movie_recommend(self, movie_id, user_count):
-    #     """Recommends up to movies_count top unrated movies to user_id
-    #     """
-    #     movies = self.ratingsdf.select(self.als.getItemCol())
-    #     movies = movies.filter(movies.movieId == movie_id)
-    #     movieSubsetRecs = self.model.recommendForItemSubset(movies, user_count)
-    #     movieSubsetRecs = movieSubsetRecs.withColumn("recommendations", explode("recommendations"))
-    #     movieSubsetRecs = movieSubsetRecs.select(func.col('movieId'),
-    #                                              func.col('recommendations')['userId'].alias('userId'),
-    #                                              func.col('recommendations')['Rating'].alias('Rating')).\
-    #                                                                                     drop('recommendations')
-    #     movieSubsetRecs = movieSubsetRecs.drop('Rating')
-    #     movieSubsetRecs = movieSubsetRecs.join(self.moviesdf, ("movieId"), 'inner')
-    #     # userSubsetRecs.show()
-    #     # userSubsetRecs.printSchema()
-    #     movieSubsetRecs = movieSubsetRecs.toPandas()
-    #     movieSubsetRecs = movieSubsetRecs.to_json()
-    #     return movieSubsetRecs
-
-    # def get_ratings_for_movie_ids(self, user_id, movie_id):
-    #     """Given a user_id and a list of movie_ids, predict ratings for them
-    #     """
-    #     request = self.spark_session.createDataFrame([(user_id, movie_id)], ["userId", "movieId"])
-    #     ratings = self.model.transform(request).collect()
-    #     return ratings
-
-    # def add_ratings(self, user_id, movie_id, ratings_given):
-    #     """Add additional movie ratings in the format (user_id, movie_id, rating)
-    #     """
-    #     # Convert ratings to an RDD
-    #     new_ratings = self.spark_session.createDataFrame([(user_id, movie_id, ratings_given)],
-    #                                                      ["userId", "movieId", "rating"])
-    #     # Add new ratings to the existing ones
-    #     self.ratingsdf = self.ratingsdf.union(new_ratings)
-    #     # Re-train the ALS model with the new ratings
-    #     self.__train_model()
-    #     new_ratings = new_ratings.toPandas()
-    #     new_ratings = new_ratings.to_json()
-    #     return new_ratings
-
-    # def get_history(self, user_id):
-    #     """Get rating history for a user
-    #     """
-    #     self.ratingsdf.createOrReplaceTempView("ratingsdata")
-    #     user_history = self.spark_session.sql('SELECT userId, movieId, rating from ratingsdata where userId = "%s"' %user_id)
-    #     user_history = user_history.join(self.moviesdf, ("movieId"), 'inner')
-    #     user_history = user_history.toPandas()
-    #     user_history = user_history.to_json()
-    #     return user_history
 
     def __init__(self, spark_session, dataset_folder_path):
         """Init the clustering engine given a Spark context and a dataset path
         """
         logger.info("Starting up the Clustering Engine: ")
         self.spark_session = spark_session
-        # Load ratings data for later use
         logger.info("Loading City Data...")
-        dataset_file_path = os.path.join(dataset_folder_path, 'result.txt')
-        self.df = spark_session.read.csv(dataset_file_path, header=None, inferSchema=True).na.drop()
-        self.df = self.df.selectExpr("_c0 as Country", "_c1 as City", "_c2 as AccentCity", "_c3 as Region", "_c4 as Population", "_c5 as Latitude", "_c6 as Longitude")
-        # self.df = spark_session.read.option("header", "false") \
-        #                             .option("delimiter", ",") \
-        #                             .option("inferSchema", "true") \
-        #                             .option("encoding", "UTF-8") \
-        #                             .text(dataset_file_path)
-        # self.ratingsdf = self.ratingsdf.drop(self.ratingsdf.columns[1])
-        # self.ratingsdf = self.ratingsdf.dropna()
-        # self.ratingsdf = self.ratingsdf.toPandas()
-        self.df.show()
-        # Load movies data for later use
-        # logger.info("Loading Books data...")
-        # movies_file_path = os.path.join(dataset_path, 'BX-Books.csv')
-        # self.ratingsdf.column = ['ISBN', 'bookTitle', 'bookAuthor', 'yearOfPublication', 'publisher', 'imgurlS', 'imgurlM','imgurlL']
-        # self.bookdf = spark_session.read.csv(movies_file_path, header=True, inferSchema=True).na.drop()
-        # Train the model
-        self.df = transformDF(self.df)
+        file_counter = 0
+        while True:
+            file_name = 'result' + str(file_counter) + '.txt'
+            dataset_file_path = os.path.join(dataset_folder_path, file_name)
+            exist = os.path.isfile(dataset_file_path)
+            if exist:
+                if file_counter == 0:
+                    self.dforiginal = spark_session.read.csv(dataset_file_path, header=None, inferSchema=True)
+                else:
+                    new_df = spark_session.read.csv(dataset_file_path, header=None, inferSchema=True)
+                    self.dforiginal = self.dforiginal.union(new_df)
+                self.dataset_count = self.dforiginal.count()
+                print('dataset loaded = ' + str(self.dataset_count))
+                print(file_name + 'Loaded !')
+                file_counter += 1
+            else:
+                break
+        self.dforiginal = self.dforiginal.selectExpr("_c0 as Country", "_c1 as City", "_c2 as AccentCity", "_c3 as Region", "_c4 as Population", "_c5 as Latitude", "_c6 as Longitude")
+        # self.df.show()
+        # print(self.dforiginal.count())
+        self.dforiginal = transformDF(self.dforiginal)
         self.__train_model()
