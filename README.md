@@ -22,7 +22,7 @@ Consumer.py adalah file Python sebagai "consumer" di sistem kafka. Consumer.py m
 2. Model 2: 1/3 data pertama + 1/3 data kedua
 3. Model 3: 1/3 data pertama + 1/3 data kedua + 1/3 data terakhir (semua data)
 
-###Batas jumlah data yang diterima
+### Batas jumlah data yang diterima
 Batas jumlah data yang diterima adalah 100.000 data per file
 
 
@@ -45,4 +45,4 @@ kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --pa
 method = [POST]
 model_numb dapat diganti dari 0, 1, atau 2 untuk Menentukan model yang akan digunakan
 Masukkan 'Country', 'City', 'AccentCity', 'Region', 'Population', 'Latitude', 'Longitude' pada body request. Return berupa cluster terdekat
-![Contoh Gambar 1](.img/clusterCity.png)
+![Contoh Gambar 1](./img/clusterCity.png)
