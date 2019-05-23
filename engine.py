@@ -10,13 +10,6 @@ from pyspark.ml.feature import VectorAssembler
 from pyspark.sql.types import DoubleType
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
-import plotly.plotly as py
-import plotly.graph_objs as go
-import plotly
-
-# # setting user, api key and access token
-# plotly.tools.set_credentials_file(username='illhamhanafi', api_key='ogNKJZXFl7n9EJHDAzvz')
-# mapbox_access_token = 'pk.eyJ1IjoiYnVqYW5ncGVzaW1pcyIsImEiOiJjanRlNmY5N3cxZXM4NDlucm54dm55ejc1In0.nrK84u8ztnUJ8CYkiojZUA'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,8 +69,8 @@ class ClusteringEngine:
 
         logger.info("Training model 2...")
         kmeans_2 = KMeans().setK(10).setSeed(1)
-        model_2 = kmeans_2.fit(self.df1)
-        self.predictions_2 = model_2.transform(self.df1)
+        model_2 = kmeans_2.fit(self.df2)
+        self.predictions_2 = model_2.transform(self.df2)
         logger.info("Model 2 built!")
         logger.info("Evaluating the model 2...")
         evaluator_2 = ClusteringEvaluator()
@@ -89,9 +82,6 @@ class ClusteringEngine:
     def cluster_city(self, latitude_fetched, longitude_fetched, model_numb):
         """Add additional city in DB and retrain the model
         """
-        # new_city = self.spark_session.createDataFrame([(country_fetched, city_fetched, accentCity_fetched, region_fetched, population_fetched, latitude_fetched, longitude_fetched)],
-        #                                                  ["Country", "City", "AccentCity", "Region", "Population", "Latitude", "Longitude"])
-        # Add new city to the existing ones
         distance = []
         if model_numb == 0:
             center_varname = self.centers_0
@@ -123,7 +113,7 @@ class ClusteringEngine:
                     self.dforiginal = self.dforiginal.union(new_df)
                 self.dataset_count = self.dforiginal.count()
                 print('dataset loaded = ' + str(self.dataset_count))
-                print(file_name + 'Loaded !')
+                print(file_name + ' Loaded !')
                 file_counter += 1
             else:
                 break
