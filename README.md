@@ -41,8 +41,8 @@ kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --pa
 
 ## URL yang dapat diakses
 
-### http://<Server_IP>:5432/clusterCity/model<model_numb>
-method = [POST]
-model_numb dapat diganti dari 0, 1, atau 2 untuk Menentukan model yang akan digunakan
-Masukkan 'Country', 'City', 'AccentCity', 'Region', 'Population', 'Latitude', 'Longitude' pada body request. Return berupa cluster terdekat
-![Contoh Gambar 1](./img/clusterCity.png)
+### http://<Server_IP>:5432/clusterCity/
+Form akan tampil, masukkan sesuai kebutuhan form dan send form
+![Contoh Gambar 1](./img/clusterForm.png)
+### Contoh Hasil :
+![Contoh Gambar 2](./img/clusterResult.png)
